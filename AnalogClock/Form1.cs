@@ -10,8 +10,15 @@ using System.Drawing.Drawing2D;
 
 namespace AnalogClock
 {
+    enum STATUS { STOP, START, RESET };
+
     public partial class Form1 : Form
     {
+
+        private STATUS status = STATUS.RESET;
+        int stopWatchSec = 0;
+        int stopWatchMin = 0;
+
         Timer mTimer = new Timer();
 
         public Form1()
@@ -54,6 +61,30 @@ namespace AnalogClock
                 g.RotateTransform(6.0f);
                 g.FillRectangle(black, 85, -10, 5, 1);
             }
+            // рисуем циферблат секундомера
+            InitializeTransformStopWatch(g);
+            //draw border
+            for (int i = 0; i < 120; i++)
+            {
+                g.RotateTransform(5.0f);
+                g.FillRectangle(black, 90, -5, 10, 10);
+            }
+            //draw minute mark
+            for (int i = 0; i < 60; i++)
+            {
+                g.RotateTransform(6.0f);
+                g.FillRectangle(black, 85, -10, 5, 1);
+            }
+            // отрисовываем стрелки секундомера
+            // минутная
+            InitializeTransformStopWatch(g);
+            g.RotateTransform(stopWatchMin * 6);
+            DrawHand(g, red, 100, false);
+            // секундная
+            InitializeTransformStopWatch(g);
+            g.RotateTransform(stopWatchSec * 6);
+            DrawHand(g, green, 100, true);
+
             //get current time
             DateTime nowDateTime = DateTime.Now;
             int secondInt = nowDateTime.Second;
@@ -71,8 +102,8 @@ namespace AnalogClock
             g.ResetTransform();
             float scale = System.Math.Min(ClientSize.Width, ClientSize.Height) / 200.0f;
             g.ScaleTransform(scale, scale);
-            g.DrawString(digitalClockString, drawFont, drawBrush, 0, 0);
-
+            g.DrawString(digitalClockString, drawFont, drawBrush, 0, toolStrip1.Height);
+            
             InitializeTransform(g);
             //hour hand draw
             g.RotateTransform((hourInt * 30) + (minuteInt / 2));
@@ -109,15 +140,58 @@ namespace AnalogClock
         private void InitializeTransform(Graphics g)
         {
             g.ResetTransform();
-            g.TranslateTransform(ClientSize.Width / 2, ClientSize.Height / 2);
-            float scale = System.Math.Min(ClientSize.Width, ClientSize.Height) / 200.0f;
+            g.TranslateTransform(ClientSize.Width / 2, ClientSize.Height / 2 + toolStrip1.Height / 2);
+            float scale = System.Math.Min(ClientSize.Width, ClientSize.Height - toolStrip1.Height) / 200.0f;
+            g.ScaleTransform(scale, scale);
+        }
+        // преобразование для рисования секундомера
+        private void InitializeTransformStopWatch(Graphics g)
+        {
+            g.ResetTransform();
+            g.TranslateTransform(ClientSize.Width / 2, ClientSize.Height / 2 + toolStrip1.Height / 2 + System.Math.Min(ClientSize.Width / 4, ClientSize.Height / 4));
+            float scale = System.Math.Min(ClientSize.Width / 4, ClientSize.Height / 4 - toolStrip1.Height / 2) / 200.0f;
             g.ScaleTransform(scale, scale);
         }
 
         private void onTimer(object sender, EventArgs e)
         {
+            if (status == STATUS.START)
+            {
+                if (stopWatchSec + 1 <= 59)
+                {
+                    stopWatchSec++;
+                }
+                else
+                {
+                    stopWatchSec = 0;
+                    if (stopWatchMin + 1 <= 59)
+                    {
+                        stopWatchMin++;
+                    }
+                    else
+                    {
+                        stopWatchMin = 0;
+                    }
+                }
+            }
             Invalidate();
         }
 
+        private void toolStartButton_Click(object sender, EventArgs e)
+        {
+            status = STATUS.START;
+        }
+
+        private void toolStopButton_Click(object sender, EventArgs e)
+        {
+            status = STATUS.STOP;
+        }
+
+        private void toolResetButton_Click(object sender, EventArgs e)
+        {
+            status = STATUS.RESET;
+            stopWatchSec = 0;
+            stopWatchMin = 0;
+        }
     }
 }
